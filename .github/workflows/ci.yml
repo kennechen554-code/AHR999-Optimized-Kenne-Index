@@ -31,13 +31,13 @@ jobs:
         pip install ruff bandit
 
     - name: Run Ruff Check
-      run: ruff check app tests
+      run: python -m ruff check app tests
 
     - name: Run Bandit SAST Check
-      run: bandit -r app -ll -ii
+      run: python -m bandit -r app -ll -ii
 
     - name: Run Backend Tests
-      run: pytest -q -p no:cacheprovider
+      run: python -m pytest -q -p no:cacheprovider
 
   frontend-checks:
     runs-on: ubuntu-latest
