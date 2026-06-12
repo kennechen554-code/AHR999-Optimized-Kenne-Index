@@ -1,0 +1,129 @@
+# Kenne Index 定投信号通知
+# 默认：周日 22:00 UTC = 周一 06:00 CST 自动运行
+# 每次运行后自动将更新的 CSV 和 model_params.json 提交回仓库
+
+name: Kenne Index Auto Invest
+
+on:
+  schedule:
+    - cron: '0 22 * * 0'   # 周日 22:00 UTC = 周一 06:00 CST
+  workflow_dispatch:         # 支持手动触发：Actions → Run workflow
+
+permissions:
+  contents: write
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Run signal calculation & notify
+        working-directory: backend
+        env:
+          # ── 数据库（CI 中使用 SQLite 替代 PostgreSQL）
+          DATABASE_URL: "sqlite+aiosqlite:///./test.db"
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+
+          # ── 邮件通知
+          SMTP_HOST:     ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:     ${{ secrets.SMTP_PORT }}
+          SMTP_USER:     ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO:      ${{ secrets.EMAIL_TO }}
+
+          # ── CoinGecko（可选）
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+
+        run: |
+          python -c "
+          import json, sys
+          sys.path.insert(0, '.')
+          from app.engine.kenne_index import compute_signal, COIN_PROFILES
+          from app.core.config import get_settings
+          from pathlib import Path
+
+          settings = get_settings()
+          results = {}
+          for symbol, csv_path in settings.data_files.items():
+              signal = compute_signal(csv_path, symbol)
+              results[symbol] = signal.__dict__
+              if not signal.error:
+                  print(f'{symbol}: KI={signal.kenne_index:.4f} zone={signal.zone} mult={signal.final_mult} momentum={signal.momentum}')
+              else:
+                  print(f'{symbol}: ERROR - {signal.error}')
+
+          # 保存模型参数
+          params = {}
+          for sym, sig in results.items():
+              if not sig.get('error'):
+                  params[sym] = {'slope': sig['slope'], 'r2': sig['r2'], 'data_years': sig['data_years']}
+          params_path = settings.model_params_path
+          params_path.write_text(json.dumps(params, indent=2))
+          print(f'Model params saved to {params_path}')
+          "
+
+      - name: Send email notification
+        if: env.SMTP_HOST != ''
+        working-directory: backend
+        env:
+          SMTP_HOST:     ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:     ${{ secrets.SMTP_PORT }}
+          SMTP_USER:     ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO:      ${{ secrets.EMAIL_TO }}
+        run: |
+          python -c "
+          import smtplib, os, json
+          from email.mime.text import MIMEText
+          from app.engine.kenne_index import compute_signal
+          from app.core.config import get_settings
+
+          settings = get_settings()
+          lines = ['<h2>Kenne Index 周报</h2><table border=\"1\" cellpadding=\"6\">']
+          lines.append('<tr><th>币种</th><th>价格</th><th>KI</th><th>区间</th><th>动量</th><th>倍数</th></tr>')
+          for symbol, csv_path in settings.data_files.items():
+              s = compute_signal(csv_path, symbol)
+              if s.error:
+                  lines.append(f'<tr><td>{symbol}</td><td colspan=\"5\">ERROR: {s.error}</td></tr>')
+              else:
+                  lines.append(f'<tr><td>{symbol}</td><td>\${s.price:,.2f}</td><td>{s.kenne_index:.4f}</td><td>{s.zone}</td><td>{s.momentum}</td><td>{s.final_mult:.1f}x</td></tr>')
+          lines.append('</table>')
+
+          msg = MIMEText(''.join(lines), 'html')
+          msg['Subject'] = 'Kenne Index 周报'
+          msg['From'] = os.environ['SMTP_USER']
+          msg['To'] = os.environ['EMAIL_TO']
+
+          with smtplib.SMTP(os.environ['SMTP_HOST'], int(os.environ['SMTP_PORT'])) as srv:
+              srv.starttls()
+              srv.login(os.environ['SMTP_USER'], os.environ['SMTP_PASSWORD'])
+              srv.send_message(msg)
+          print('Email sent.')
+          "
+
+      - name: Commit updated data
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backend/data/*.csv
+          [ -f backend/data/model_params.json ] && git add backend/data/model_params.json || true
+          git diff --cached --quiet || git commit -m "chore: update market data $(date -u +'%Y-%m-%d')"
+          git push

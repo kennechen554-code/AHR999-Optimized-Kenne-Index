@@ -1,0 +1,84 @@
+import { Link } from 'react-router-dom'
+import BrandWordmark from '../components/BrandWordmark'
+
+export default function PrivacyPage() {
+  return (
+    <main className="min-h-screen bg-bg px-4 py-10 text-text-primary sm:px-6">
+      <div className="mx-auto max-w-4xl">
+        <Link to="/" className="inline-flex">
+          <BrandWordmark caption="Privacy" compact />
+        </Link>
+        <section className="standard-panel mt-8 p-8">
+          <div className="section-kicker">Privacy Policy</div>
+          <h1 className="mt-2 text-3xl font-semibold">Kenne Index 隐私政策</h1>
+          <p className="mt-2 text-xs text-text-tertiary">发布日期：2026年5月25日 | 生效日期：2026年5月25日</p>
+          
+          <div className="mt-8 space-y-6 text-sm leading-7 text-text-secondary">
+            <div>
+              <h2 className="text-lg font-semibold text-white">一、信息收集与使用范围</h2>
+              <p className="mt-2">
+                1.1 <strong>账户与配置数据</strong>：为了创建和管理您的账户，我们需要收集您的电子邮件地址、密码（不可逆哈希形式）、显示名称以及订阅套餐状态。
+              </p>
+              <p>
+                1.2 <strong>交易凭证数据</strong>：当您启用实盘交易功能时，我们需要收集并存储您主动配置的第三方交易所 API 凭证（包括 API Key、Secret、Passphrase）。这些敏感数据<strong>仅用于代为执行您在平台配置的定投策略指令</strong>，不用于任何其他目的。
+              </p>
+              <p>
+                1.3 <strong>系统审计与安全日志</strong>：为防范网络欺诈及安全隐患，我们会记录您的操作审计日志，这可能包含请求 ID、登录 IP 地址、浏览器 User-Agent 信息、操作行为时间戳及相关的系统执行结果。
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-white">二、数据安全与加密承诺</h2>
+              <p className="mt-2">
+                2.1 <strong>不可逆哈希</strong>：您的登录密码在服务端通过强哈希算法（bcrypt）进行加密存储，任何平台人员（包括系统管理员）均无法获取您的原始密码。
+              </p>
+              <p>
+                2.2 <strong>高强度对称加密</strong>：您提供的交易所 API 凭证在写入数据库前，会通过 AES 对称加密算法（Fernet）在内存中进行强加密处理。解密所需的加密密钥与数据库采取物理隔离的独立存放方案，从而有效防范数据库泄露带来的密钥安全风险。
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-white">三、第三方服务与数据共享</h2>
+              <p className="mt-2">
+                3.1 <strong>支付与订阅</strong>：我们不会直接收集或存储您的信用卡及敏感支付信息。所有订阅支付交易均由全球公认的安全支付服务商 Stripe 进行加密代收与代付，您应同时遵守 Stripe 的隐私保障承诺。
+              </p>
+              <p>
+                3.2 <strong>交易指令下发</strong>：为执行定投，平台将向您授权的交易所（如 OKX）API 发送交易网络请求。平台向交易所共享的数据仅限于执行市价买入所需的交易对名称（如 BTC/USDT）和订单金额。
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-white">四、用户的核心数据权利</h2>
+              <p className="mt-2">
+                4.1 <strong>数据导出</strong>：您可以在平台的工作台数据权利页面，一键将您的所有交易历史记录与操作审计日志导出为标准 CSV 便携格式。
+              </p>
+              <p>
+                4.2 <strong>账号注销与删除</strong>：您拥有删除本平台账户的完整权利。当您在账户设置中发起删除请求并经验证码和邮件确认后，系统将自动撤销您的所有活跃会话，停用您的账号，并在 30 天内对您的个人资产配置与 API 密钥记录进行<strong>物理擦除</strong>。
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-white">五、数据保留期限</h2>
+              <p className="mt-2">
+                5.1 您的定投策略配置、API 密钥与会话记录只要账户处于活跃状态即会持续保留。
+              </p>
+              <p>
+                5.2 操作审计日志和任务运行历史，将根据租户配置的全局数据保留政策（默认 90 天）在后台定期执行自动清理，以减少您的数据驻留风险。
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-white">六、Cookies 政策</h2>
+              <p className="mt-2">
+                6.1 平台仅使用对维持系统功能和身份认证所绝对必需的 Cookie 凭证（包括用于记录登录会话的 access_token、refresh_token 以及防御跨站请求伪造的 csrf_token）。
+              </p>
+              <p>
+                6.2 上述 Cookie 均配置了 `HttpOnly`、`Secure` 及 `SameSite=Lax` 属性，能够防止跨站脚本（XSS）和跨站请求伪造（CSRF）攻击，确保您的登录环境绝对可靠。
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  )
+}

@@ -1,0 +1,50 @@
+# Python / backend local state
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.pip-audit-cache/
+pytest-cache-files-*/
+venv/
+.venv/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+.chrome-smoke-profile-*/
+.codex-publish-*/
+backend/data/latest_verification_url.txt
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+secrets/
+secret-scan-results.*
+gitleaks-report.*
+trufflehog-report.*
+
+# Node / frontend local state
+node_modules/
+.npm-cache/
+dist/
+dist-ssr/
+build/
+*.local
+
+# Docker / build cache
+.docker/
+.dockerignore.local
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store

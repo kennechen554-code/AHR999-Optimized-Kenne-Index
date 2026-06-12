@@ -1,0 +1,91 @@
+# Development compose file. Do not use this file as-is for production secrets.
+# Production deployments must inject DATABASE_URL, SECRET_KEY, ENCRYPTION_KEY,
+# Stripe keys, and other secrets from the hosting platform or a secret manager.
+
+services:
+  # ─── PostgreSQL ──────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env}
+      POSTGRES_DB: ${POSTGRES_DB:-kenne_main}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  # ─── 后端 API ────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env}@db:5432/${POSTGRES_DB:-kenne_main}
+      TENANT_DB_URL_TEMPLATE: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env}@db:5432/kenne_tenant_{tenant_id}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in your local .env}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set ENCRYPTION_KEY in your local .env}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-false}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      CSRF_PROTECTION: ${CSRF_PROTECTION:-true}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173","http://localhost:3000"]}
+      RATE_LIMIT_BACKEND: ${RATE_LIMIT_BACKEND:-auto}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_BASIC_PRICE_ID: ${STRIPE_BASIC_PRICE_ID:-}
+      STRIPE_PREMIUM_PRICE_ID: ${STRIPE_PREMIUM_PRICE_ID:-}
+      SYSTEM_SMTP_HOST: ${SYSTEM_SMTP_HOST:-}
+      SYSTEM_SMTP_PORT: ${SYSTEM_SMTP_PORT:-587}
+      SYSTEM_SMTP_USER: ${SYSTEM_SMTP_USER:-}
+      SYSTEM_SMTP_PASSWORD: ${SYSTEM_SMTP_PASSWORD:-}
+      SYSTEM_SMTP_FROM: ${SYSTEM_SMTP_FROM:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend/data:/app/data
+
+  # ─── 前端 ────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  # ─── Prometheus 监控 ──────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./backend/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
