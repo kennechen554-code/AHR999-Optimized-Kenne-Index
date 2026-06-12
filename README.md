@@ -197,7 +197,7 @@ BACKTEST_ALLOWED_DIRS=[]
 
 ## 📈 量化定投策略引擎
 
-定投算法定义于后端代码 [per_asset_strategy.py](file:///E:/AHR999-Optimized-Kenne-Index-main/backend/app/engine/per_asset_strategy.py)，支持在设置中动态调整：
+定投算法定义于后端代码 [per_asset_strategy.py](backend/app/engine/per_asset_strategy.py)，支持在设置中动态调整：
 
 1. **`per_asset_strict_dd` (严格最大回撤控制)**
    默认防守型策略。优先保护现金流，设立极高的现金缓冲池，只在估值区间进入低估和强安全边际（极低指数值）时释放更多预算。
@@ -220,15 +220,16 @@ npm.cmd run build
 ```powershell
 cd backend
 .\.venv\Scripts\python.exe -c "from app.main import app; print(app.title)"
-.\.venv\Scripts\python.exe -m ruff check app
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -m ruff check app tests
 .\.venv\Scripts\python.exe -m bandit -r app -ll -ii
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
 ```
 
 本轮已执行并通过：
 
 * 前端：`npm.cmd --cache ..\.npm-cache audit --audit-level=moderate`、`npm.cmd exec tsc -- --noEmit`、`npm.cmd test`、`npm.cmd run build`
-* 后端：`.\.venv\Scripts\python.exe -m pip check`、`pip-audit --local --timeout 15 --progress-spinner off --cache-dir ..\.pip-audit-cache`、应用导入检查、`ruff check app tests`、`bandit -r app -ll -ii`、`pytest -q -p no:cacheprovider`
+* 后端：`.\.venv\Scripts\python.exe -m pip check`、`pip-audit --local --timeout 15 --progress-spinner off --cache-dir ..\.pip-audit-cache`、应用导入检查、`.\.venv\Scripts\python.exe -m ruff check app tests`、`.\.venv\Scripts\python.exe -m bandit -r app -ll -ii`、`.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider`
 * 浏览器：受当前 Windows 沙箱限制，Chrome/Edge headless CLI 无法输出截图或 DOM；已完成本地 Vite/后端临时服务可达性检查，视觉设计以 Figma 截图和前端构建结果为准。
 
 ### 发布分支
