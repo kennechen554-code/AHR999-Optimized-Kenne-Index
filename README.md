@@ -118,6 +118,7 @@ npm.cmd run build
 ```
 
 前端生产产物输出到 `frontend/build`，Docker 镜像会从该目录复制静态文件。
+当前前端构建链使用 `@vitejs/plugin-react` 6.0.x，锁文件当前解析到 Vite 8.0.8，并已通过 Windows 本地生产构建验证。
 
 ---
 
@@ -228,9 +229,9 @@ cd backend
 
 本轮已执行并通过：
 
-* 前端：`npm.cmd --cache ..\.npm-cache audit --audit-level=moderate`、`npm.cmd exec tsc -- --noEmit`、`npm.cmd test`、`npm.cmd run build`
+* 前端：`npm.cmd --cache ..\.npm-cache-ci audit --audit-level=moderate`、`npm.cmd exec tsc -- --noEmit`、`npm.cmd test`、`npm.cmd run build`
 * 后端：`.\.venv\Scripts\python.exe -m pip check`、`pip-audit --local --timeout 15 --progress-spinner off --cache-dir ..\.pip-audit-cache`、应用导入检查、`.\.venv\Scripts\python.exe -m ruff check app tests`、`.\.venv\Scripts\python.exe -m bandit -r app -ll -ii`、`.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider`
-* 浏览器：受当前 Windows 沙箱限制，Chrome/Edge headless CLI 无法输出截图或 DOM；已完成本地 Vite/后端临时服务可达性检查，视觉设计以 Figma 截图和前端构建结果为准。
+* 浏览器：已通过 in-app Browser 对生产构建预览进行桌面端和移动端回归检查，覆盖公开首页、行情页、资产切换交互和控制台告警。
 
 ### 发布分支
 在具备 `.git` 写权限和 GitHub 推送凭据的环境中，可执行以下脚本完成清理、暂存、提交并推送发布分支：
@@ -239,7 +240,7 @@ cd backend
 powershell -ExecutionPolicy Bypass -File .\scripts\publish-release.ps1
 ```
 
-脚本会在提交前清理 `frontend/build`、`frontend/dist`、`reports`、`.npm-cache`、`.pip-audit-cache`、`__pycache__`、`.pytest_cache`、`.mypy_cache` 等本地状态，并从 Git 索引移除 `backend/.env`、`backend/dev.db` 等禁止发布文件，避免把密钥、数据库或构建缓存发布到 GitHub。
+脚本会在提交前清理 `frontend/build`、`frontend/dist`、`reports`、`.npm-cache`、`.npm-cache-ci`、`.pip-audit-cache`、`.codex-runtime`、`__pycache__`、`.pytest_cache`、`.mypy_cache` 等本地状态，并从 Git 索引移除 `backend/.env`、`backend/dev.db` 等禁止发布文件，避免把密钥、数据库或构建缓存发布到 GitHub。
 
 ---
 
