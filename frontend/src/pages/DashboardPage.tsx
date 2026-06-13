@@ -12,11 +12,21 @@ import {
   Target,
   TrendingDown,
 } from 'lucide-react'
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import OnboardingChecklist from '../components/OnboardingChecklist'
 import { useToast } from '../components/ToastProvider'
 import { fetchBacktestStrategies, fetchConfig, fetchHistory, fetchMvrv, fetchSignals, fetchSharePerformance } from '../services/api'
 import type { Signal, UserInfo } from '../types/api'
+
+interface SignalChartPoint {
+  symbol: string
+  ki: number
+  mult: number
+}
+
+interface SvgPoint {
+  x: number
+  y: number
+}
 
 function currency(value: number) {
   return value.toLocaleString(undefined, {
@@ -43,6 +53,76 @@ function signalLabel(signal: Signal) {
   if (signal.final_mult >= 1.5) return '低估加仓'
   if (signal.final_mult > 0) return '纪律定投'
   return '等待信号'
+}
+
+function getChartRange(values: number[]): { min: number; max: number } {
+  const fallback = { min: 0, max: 1 }
+  if (values.length === 0) return fallback
+  const min = Math.min(...values, 0)
+  const max = Math.max(...values, 1)
+  if (min === max) return { min: min - 1, max: max + 1 }
+  const padding = (max - min) * 0.12
+  return { min: Math.max(0, min - padding), max: max + padding }
+}
+
+function toSignalSvgPoints(data: SignalChartPoint[], range: { min: number; max: number }): SvgPoint[] {
+  const left = 48
+  const top = 28
+  const width = 720
+  const height = 300
+  const usableWidth = width - left - 34
+  const usableHeight = height - top - 50
+
+  return data.map((point, index) => ({
+    x: left + (data.length <= 1 ? usableWidth / 2 : (index / (data.length - 1)) * usableWidth),
+    y: top + (1 - (point.ki - range.min) / (range.max - range.min)) * usableHeight,
+  }))
+}
+
+function pathFrom(points: SvgPoint[]): string {
+  return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ')
+}
+
+function PortfolioSignalChart({ data }: { data: SignalChartPoint[] }) {
+  const range = getChartRange(data.map((point) => point.ki))
+  const points = toSignalSvgPoints(data, range)
+  const linePath = pathFrom(points)
+  const areaPath = points.length > 0
+    ? `${linePath} L ${points[points.length - 1].x.toFixed(1)} 250 L ${points[0].x.toFixed(1)} 250 Z`
+    : ''
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
+    y: 28 + ratio * 222,
+    value: range.max - ratio * (range.max - range.min),
+  }))
+
+  return (
+    <svg className="h-full w-full" viewBox="0 0 720 300" role="img" aria-label="Kenne Index 概览趋势">
+      <defs>
+        <linearGradient id="dashboard-ki-fill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#51c7e4" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#51c7e4" stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      {ticks.map((tick) => (
+        <g key={tick.y}>
+          <line x1="48" x2="686" y1={tick.y} y2={tick.y} stroke="rgba(226,226,232,0.08)" />
+          <text x="18" y={tick.y + 4} fill="rgba(196,199,200,0.66)" fontSize="12">
+            {tick.value.toFixed(1)}
+          </text>
+        </g>
+      ))}
+      {areaPath && <path d={areaPath} fill="url(#dashboard-ki-fill)" />}
+      {linePath && <path d={linePath} fill="none" stroke="#51c7e4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />}
+      {points.map((point, index) => (
+        <g key={data[index].symbol}>
+          <circle cx={point.x} cy={point.y} r="4" fill="#0b0d11" stroke="#51c7e4" strokeWidth="2" />
+          <text x={point.x} y="282" fill="rgba(196,199,200,0.72)" fontSize="12" textAnchor="middle">
+            {data[index].symbol}
+          </text>
+        </g>
+      ))}
+    </svg>
+  )
 }
 
 function SignalCard({ signal }: { signal: Signal }) {
@@ -160,7 +240,7 @@ function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <OnboardingChecklist user={user} config={config} />
+      <OnboardingChecklist user={user} config={config} hideWhenComplete />
       <section className="grid gap-4 xl:grid-cols-[1.35fr_0.85fr]">
         <div className="standard-panel surface-enter p-5 sm:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -196,21 +276,7 @@ function DashboardPage() {
 
           <div className="portfolio-chart-shell mt-5">
             {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="kiFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#51c7e4" stopOpacity={0.28} />
-                      <stop offset="100%" stopColor="#51c7e4" stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="rgba(226,226,232,0.07)" vertical={false} />
-                  <XAxis dataKey="symbol" tick={{ fill: '#c4c7c8', fontSize: 12, fontFamily: 'Inter, SF Pro Text, Segoe UI, sans-serif' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#c4c7c8', fontSize: 12, fontFamily: 'Inter, SF Pro Text, Segoe UI, sans-serif' }} axisLine={false} tickLine={false} width={42} />
-                  <Tooltip contentStyle={{ background: '#1e2024', border: '1px solid rgba(226,226,232,0.16)', borderRadius: 16, fontFamily: 'Inter, SF Pro Text, Segoe UI, sans-serif' }} />
-                  <Area type="monotone" dataKey="ki" name="Kenne Index" stroke="#51c7e4" fill="url(#kiFill)" strokeWidth={2.4} />
-                </AreaChart>
-              </ResponsiveContainer>
+              <PortfolioSignalChart data={chartData} />
             ) : (
               <div className="chart-empty-state">
                 {isLoading ? '信号图表加载中' : '暂无可绘制信号，请先刷新行情或检查本地 CSV 数据'}

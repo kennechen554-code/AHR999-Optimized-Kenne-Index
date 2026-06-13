@@ -5,6 +5,7 @@ import type { UserConfig, UserInfo } from '../types/api'
 interface OnboardingChecklistProps {
   user: UserInfo | null
   config?: UserConfig
+  hideWhenComplete?: boolean
 }
 
 export function buildOnboardingSteps(user: UserInfo | null, config?: UserConfig) {
@@ -44,9 +45,13 @@ export function buildOnboardingSteps(user: UserInfo | null, config?: UserConfig)
   ]
 }
 
-export default function OnboardingChecklist({ user, config }: OnboardingChecklistProps) {
+export default function OnboardingChecklist({ user, config, hideWhenComplete = false }: OnboardingChecklistProps) {
   const steps = buildOnboardingSteps(user, config)
   const completed = steps.filter((step) => step.done).length
+
+  if (hideWhenComplete && completed === steps.length) {
+    return null
+  }
 
   return (
     <section className="standard-panel p-5">
