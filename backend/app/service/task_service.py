@@ -29,6 +29,7 @@ DEFAULT_TASKS: dict[str, int] = {
 }
 SCHEDULER_TICK_LOCK_KEY = "kenne:scheduler:due-tasks"
 SCHEDULER_TICK_LOCK_TTL_SECONDS = 75
+AUTOMATION_INTERNAL_ERROR_MESSAGE = "自动化任务执行失败，请稍后重试或联系支持。"
 
 
 def _now() -> datetime:
@@ -551,10 +552,10 @@ class TaskRuntime:
                 await session.commit()
             self.last_message = f"自动 dry-run 完成，处理 {processed} 个配置"
             return {"ok": True, "processed": processed, "message": self.last_message}
-        except Exception as exc:
-            self.last_error = str(exc)
+        except Exception:
+            self.last_error = AUTOMATION_INTERNAL_ERROR_MESSAGE
             logger.exception("automation task failed")
-            return {"ok": False, "processed": processed, "message": self.last_error}
+            return {"ok": False, "processed": processed, "message": AUTOMATION_INTERNAL_ERROR_MESSAGE}
         finally:
             self.running = False
             self.last_finished_at = _now().isoformat()
@@ -610,10 +611,10 @@ class TaskRuntime:
             processed = 1
             self.last_message = f"当前用户自动 dry-run 完成，处理 {processed} 个配置"
             return {"ok": status != "failed", "processed": processed, "message": message or self.last_message}
-        except Exception as exc:
-            self.last_error = str(exc)
+        except Exception:
+            self.last_error = AUTOMATION_INTERNAL_ERROR_MESSAGE
             logger.exception("user automation task failed user_id=%s tenant_id=%s", user_id, tenant_id)
-            return {"ok": False, "processed": processed, "message": self.last_error}
+            return {"ok": False, "processed": processed, "message": AUTOMATION_INTERNAL_ERROR_MESSAGE}
         finally:
             self.running = False
             self.last_finished_at = _now().isoformat()
@@ -645,10 +646,10 @@ class TaskRuntime:
                 await session.commit()
             self.last_message = f"到期任务扫描完成，处理 {processed} 个任务"
             return {"ok": True, "processed": processed, "message": self.last_message}
-        except Exception as exc:
-            self.last_error = str(exc)
+        except Exception:
+            self.last_error = AUTOMATION_INTERNAL_ERROR_MESSAGE
             logger.exception("due task scan failed")
-            return {"ok": False, "processed": processed, "message": self.last_error}
+            return {"ok": False, "processed": processed, "message": AUTOMATION_INTERNAL_ERROR_MESSAGE}
         finally:
             self.running = False
             self.last_finished_at = _now().isoformat()

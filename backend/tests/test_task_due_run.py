@@ -161,3 +161,55 @@ async def test_run_due_tasks_claim_prevents_second_execution(
     assert first["processed"] == 1
     assert second["processed"] == 0
     assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_run_automation_for_user_hides_internal_errors(
+    premium_authed_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await premium_authed_client.get("/api/v1/tasks/status")
+    user = await _premium_user()
+    factory = get_test_factory()
+
+    async def broken_run_dca(
+        payload: dict[str, object],
+        data_files: dict[str, object],
+        dry_run: bool,
+    ) -> dict[str, object]:
+        raise RuntimeError("postgresql://secret-token@db/internal")
+
+    monkeypatch.setattr(task_service, "run_dca", broken_run_dca)
+
+    async with factory() as session:
+        session.add(
+            UserConfig(
+                user_id=user.id,
+                tenant_id=user.tenant_id,
+                automation_enabled=True,
+                automation_dry_run=True,
+                budget_amount=1000.0,
+            )
+        )
+        task = (
+            await session.execute(
+                select(AutomationTask).where(
+                    AutomationTask.user_id == user.id,
+                    AutomationTask.task_type == "automation_dry_run",
+                )
+            )
+        ).scalar_one()
+        task.enabled = True
+        await session.commit()
+
+    async with factory() as session:
+        result = await task_service.task_runtime.run_automation_for_user(
+            session,
+            user.id,
+            user.tenant_id,
+        )
+
+    assert result["ok"] is False
+    assert result["message"] == task_service.AUTOMATION_INTERNAL_ERROR_MESSAGE
+    assert task_service.task_runtime.last_error == task_service.AUTOMATION_INTERNAL_ERROR_MESSAGE
+    assert "secret-token" not in str(result["message"])
