@@ -10,9 +10,10 @@ from collections.abc import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app.core.config import get_settings
 from app.core.database import create_all_tables, dispose_all_engines
@@ -130,9 +131,10 @@ def create_app() -> FastAPI:
             return HTMLResponse(backtest_path.read_text(encoding="utf-8"))
         return HTMLResponse("<h2>回测报告文件未找到</h2>")
 
-    # ─── Prometheus 监控 ───────────────────────────────
-    from prometheus_fastapi_instrumentator import Instrumentator
-    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+    @app.get("/metrics", include_in_schema=False)
+    async def metrics() -> Response:
+        """导出 Prometheus 自定义业务指标。"""
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     return app
 
