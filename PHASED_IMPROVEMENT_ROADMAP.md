@@ -189,7 +189,7 @@ graph TB
 |------|------|
 | **当前状态** | 已完成 Prometheus 集成和四大核心业务指标的定义与埋点 |
 | **目标状态** | 已打通 API 请求监控、DCA 成功/失败统计、交易所 API 调用异常以及任务熔断事件监控 |
-| **实施方案** | 1. 已添加 `prometheus-fastapi-instrumentator` 库<br>2. 已在 `main.py` 集成并暴露 `/metrics` 接口<br>3. 已配置 `dca_executions_total`、`dca_amount_total`、`exchange_api_errors_total`、`task_failures_total` 四个核心业务指标并在相关逻辑中进行埋点<br>4. 已提供一键拉起的 `prometheus.yml` 配置并挂载至 `docker-compose.yml` 容器服务中 |
+| **实施方案** | 1. 已改用 `prometheus-client` 直接导出指标，避免第三方 FastAPI 路由包装器与 Starlette 版本耦合<br>2. 已在 `main.py` 暴露 `/metrics` 接口<br>3. 已配置 `dca_executions_total`、`dca_amount_total`、`exchange_api_errors_total`、`task_failures_total` 四个核心业务指标并在相关逻辑中进行埋点<br>4. 已提供一键拉起的 `prometheus.yml` 配置并挂载至 `docker-compose.yml` 容器服务中 |
 | **工作量** | 3-5 天 |
 | **风险等级** | 🟡 Medium |
 | **依赖** | 依赖 1.1 结构化日志 |
@@ -332,8 +332,8 @@ graph TB
 | 3 | 🟡 可靠性 | `backend/app/service/dca_service.py` | 无交易所 API 调用重试 | 网络抖动导致下单失败 |
 | 4 | 🟡 可靠性 | `backend/app/service/task_service.py` | 任务禁用后无主动告警 | 运维不知道任务已停止 |
 | 5 | 🟡 架构 | `backend/app/core/security.py` L83-114 | `ENCRYPTION_KEY` 硬编码取前 32 字节 | 密钥管理不灵活 |
-| 6 | 🟢 质量 | `frontend/src/pages/PricingPage.tsx` | 仅 re-export BillingPage，无独立路由 | 功能重复 |
-| 7 | 🟢 质量 | `frontend/package.json` | `framer-motion` 已安装但未使用 | 包体积浪费 |
+| 6 | 🟢 质量 | `frontend/src/pages/PricingPage.tsx` | 已删除，仅保留 `BillingPage` 作为订阅入口 | 已完成 |
+| 7 | 🟢 质量 | `frontend/package.json` | 已移除未使用的 `framer-motion` 依赖 | 已完成 |
 | 8 | 🟡 合规 | `frontend/src/pages/TermsPage.tsx` | 模板占位，标注"请法务审阅" | 法律风险 |
 | 9 | 🟡 运维 | `docker-compose.yml` | 无数据库备份服务 | 数据丢失风险 |
 | 10 | 🟢 质量 | `backend/app/core/database.py` | SQLite 开发 + PostgreSQL 生产双驱动 | ORM 行为可能不一致 |

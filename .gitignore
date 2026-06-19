@@ -14,6 +14,8 @@ venv/
 .chrome-smoke-profile-*/
 .codex-publish-*/
 backend/data/latest_verification_url.txt
+.codex-runtime/
+reports/
 
 # Secrets and local environment
 .env
@@ -34,6 +36,7 @@ trufflehog-report.*
 # Node / frontend local state
 node_modules/
 .npm-cache/
+.npm-cache-ci/
 dist/
 dist-ssr/
 build/
