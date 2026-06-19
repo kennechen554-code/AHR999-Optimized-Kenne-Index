@@ -118,7 +118,7 @@ npm.cmd run build
 ```
 
 前端生产产物输出到 `frontend/build`，Docker 镜像会从该目录复制静态文件。
-当前前端构建链使用 `@vitejs/plugin-react` 6.0.x，锁文件当前解析到 Vite 8.0.8，并已通过 Windows 本地生产构建验证。
+当前前端构建链使用 `@vitejs/plugin-react` 6.0.x，锁文件当前解析到 Vite 8.0.16，并已通过 Windows 本地生产构建验证。
 
 ---
 
