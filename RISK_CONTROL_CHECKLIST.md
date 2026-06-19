@@ -83,7 +83,7 @@
 |---|--------|------|------|---------|
 | 33 | 服务条款 | ✅ 已实现 | `TermsPage.tsx` 已提供正式版法务合同 | 完成 |
 | 34 | 隐私政策 | ✅ 已实现 | `PrivacyPage.tsx` 已提供正式隐私政策说明 | 完成 |
-| 35 | 投资风险披露 | ✅ 已实现 | 已包含在服务协议第五条中，有明确模型局限性警示 | 完成 |
+| 35 | 投资风险披露 | ✅ 已实现 | 已包含在服务协议第五条中，有详尽的风险披露 | 完成 |
 | 36 | 注册强制同意 | ✅ 已实现 | 前端已包含强制勾选框，后端也包含对 `accepted_terms` 参数的校验和时间戳保存 | 完成 |
 | 37 | 数据权利 | ✅ 已实现 | `DataRightsPage.tsx`：数据导出 + 账号删除 | — |
 
@@ -320,7 +320,7 @@ grep -inE "api_key|api_secret|password|token|secret_key|encryption_key" logs/*.l
 - 确保关键异常能第一时间收到通知
 
 **第二步（P1-P2）**：Prometheus + Grafana
-- 使用 `prometheus-client` 维护 `/metrics` 指标导出，避免 FastAPI/Starlette 路由包装兼容性风险
+- 部署 `prometheus-fastapi-instrumentator`
 - 监控 API 延迟、错误率、DCA 成功率
 - 配置 Grafana alert rules
 
