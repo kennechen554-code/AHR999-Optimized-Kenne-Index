@@ -29,3 +29,12 @@ test('health and task run surfaces are wired', () => {
   assert.match(settings, /fetchTaskRuns/)
   assert.match(settings, /TaskRunTimeline/)
 })
+
+test('public marketing surfaces keep API failures local', () => {
+  const api = read('./services/api.ts')
+  assert.match(api, /interface PublicRequestOptions/)
+  assert.match(api, /function shouldSuppressPublicToast/)
+  assert.match(api, /options\.suppressToast !== false/)
+  assert.match(api, /fetchPublicSignals\(options: PublicRequestOptions = \{\}\)/)
+  assert.match(api, /fetchInviteInfo\(code: string, options: PublicRequestOptions = \{\}\)/)
+})
