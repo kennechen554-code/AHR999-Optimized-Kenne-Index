@@ -542,14 +542,24 @@ export async function fetchAiDailyReport(): Promise<AiDailyReportResponse> {
   return request<AiDailyReportResponse>(`${BASE}/reports/ai-daily`)
 }
 
-export async function fetchPublicSignals(): Promise<PublicSignal[]> {
-  return request<PublicSignal[]>(`${BASE}/signals/public`)
+interface PublicRequestOptions {
+  suppressToast?: boolean
+}
+
+function shouldSuppressPublicToast(options: PublicRequestOptions): boolean {
+  return options.suppressToast !== false
+}
+
+export async function fetchPublicSignals(options: PublicRequestOptions = {}): Promise<PublicSignal[]> {
+  return request<PublicSignal[]>(`${BASE}/signals/public`, { suppressToast: shouldSuppressPublicToast(options) })
 }
 
 export async function fetchSharePerformance(): Promise<SharePerformance> {
   return request<SharePerformance>(`${BASE}/share/performance`)
 }
 
-export async function fetchInviteInfo(code: string): Promise<InviteInfo> {
-  return request<InviteInfo>(`${BASE}/share/invite-info?code=${encodeURIComponent(code)}`)
+export async function fetchInviteInfo(code: string, options: PublicRequestOptions = {}): Promise<InviteInfo> {
+  return request<InviteInfo>(`${BASE}/share/invite-info?code=${encodeURIComponent(code)}`, {
+    suppressToast: shouldSuppressPublicToast(options),
+  })
 }
