@@ -17,6 +17,7 @@ Kenne Index SaaS 是一个端到端的智能加密资产定投（DCA）信号与
 本轮上线化改造同步完成了 Figma 设计稿重构，前端视觉基调改为面向金融 SaaS 的低噪声深色工作台，弱化营销式装饰，强化资产状态、执行前检查、审计留痕和风险控制优先级。
 
 * Figma 设计稿：[Kenne Index SaaS Dashboard](https://www.figma.com/design/9NhYeetb7rsbcQtrriBepw?node-id=1-2)
+* Figma 上线 QA 补充画板：`Release QA / Public Resilience Update / 2026-06-20`，记录公开行情页与邀请分享页的局部错误态、无全局 toast 干扰策略和生产预览验证结果。
 
 ---
 
@@ -229,9 +230,12 @@ cd backend
 
 本轮已执行并通过：
 
-* 前端：`npm.cmd --cache ..\.npm-cache-ci audit --audit-level=moderate`、`npm.cmd exec tsc -- --noEmit`、`npm.cmd test`、`npm.cmd run build`
-* 后端：`.\.venv\Scripts\python.exe -m pip check`、`pip-audit --local --timeout 15 --progress-spinner off --cache-dir ..\.pip-audit-cache`、应用导入检查、`.\.venv\Scripts\python.exe -m ruff check app tests`、`.\.venv\Scripts\python.exe -m bandit -r app -ll -ii`、`.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider`
-* 浏览器：已通过 in-app Browser 对生产构建预览进行桌面端和移动端回归检查，覆盖公开首页、行情页、资产切换交互和控制台告警。
+* 前端：`npm.cmd exec tsc -- --noEmit`、`npm.cmd test`（4 项通过）、`npm.cmd run build`
+* 后端：`.\.venv\Scripts\python.exe -m pip check`、`.\.venv\Scripts\python.exe -m ruff check app tests`、`.\.venv\Scripts\python.exe -m bandit -r app -ll -ii`、`.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider`（79 项通过）
+* 浏览器：已通过 in-app Browser 对生产构建预览进行桌面端和移动端回归检查，覆盖公开首页、行情页、邀请分享页无效邀请码、公开接口失败局部降级、无全局错误 toast、无控制台错误和无横向溢出。
+
+> [!NOTE]
+> 当前环境中的 Chrome 插件通道未完成 Codex native host 注册，无法使用用户 Chrome 会话直接做 QA；已改用 in-app Browser 完成等价的生产预览回归。若需要复用个人 Chrome 登录态，请先在 Codex 插件界面重新安装或启用 Chrome Extension/native host。
 
 ### 发布分支
 在具备 `.git` 写权限和 GitHub 推送凭据的环境中，可执行以下脚本完成清理、暂存、提交并推送发布分支：
