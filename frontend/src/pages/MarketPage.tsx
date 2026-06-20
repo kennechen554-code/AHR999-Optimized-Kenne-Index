@@ -77,7 +77,7 @@ export default function MarketPage() {
   const [selectedSymbol, setSelectedSymbol] = useState('BTC')
   const { data: signals, isLoading, error } = useQuery<PublicSignal[]>({
     queryKey: ['publicSignals'],
-    queryFn: fetchPublicSignals,
+    queryFn: () => fetchPublicSignals({ suppressToast: true }),
     refetchInterval: 180000,
   })
 
