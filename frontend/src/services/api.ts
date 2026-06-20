@@ -43,7 +43,12 @@ interface ApiErrorBody {
   request_id?: string
 }
 
-async function request<T>(url: string, options: RequestInit = {}, retryOnAuth = true): Promise<T> {
+interface ApiRequestOptions extends RequestInit {
+  suppressToast?: boolean
+}
+
+async function request<T>(url: string, options: ApiRequestOptions = {}, retryOnAuth = true): Promise<T> {
+  const { suppressToast = false, ...fetchOptions } = options
   const isFormData = options.body instanceof FormData
   const method = (options.method || 'GET').toUpperCase()
   const headers: Record<string, string> = {
@@ -65,7 +70,7 @@ async function request<T>(url: string, options: RequestInit = {}, retryOnAuth = 
   let response: Response
   try {
     response = await fetch(url, {
-      ...options,
+      ...fetchOptions,
       headers,
       credentials: 'include',
     })
@@ -87,7 +92,9 @@ async function request<T>(url: string, options: RequestInit = {}, retryOnAuth = 
     const requestId = error.request_id || response.headers.get('X-Request-ID') || ''
     const message = error.message || error.detail || `HTTP ${response.status}`
     const displayMessage = requestId ? `${message} · Request ID ${requestId}` : message
-    window.dispatchEvent(new CustomEvent('kenne-toast', { detail: { message: displayMessage, tone: 'error' } }))
+    if (!suppressToast) {
+      window.dispatchEvent(new CustomEvent('kenne-toast', { detail: { message: displayMessage, tone: 'error' } }))
+    }
     throw new Error(displayMessage)
   }
 
@@ -148,6 +155,7 @@ export async function refreshAccessToken(): Promise<boolean> {
     const data = await request<TokenResponse>(`${BASE}/auth/refresh`, {
       method: 'POST',
       body: JSON.stringify({}),
+      suppressToast: true,
     }, false)
     setTokens(data.access_token, data.refresh_token)
     return true
@@ -265,8 +273,35 @@ export async function fetchMvrv(): Promise<{ ok: boolean; data: MvrvData[] }> {
   return request(`${BASE}/mvrv`)
 }
 
-export async function fetchPlans(): Promise<PlansResponse> {
-  return request<PlansResponse>(`${BASE}/stripe/plans`)
+interface FetchPlansOptions {
+  suppressToast?: boolean
+}
+
+interface QueryContextLike {
+  queryKey?: readonly unknown[]
+}
+
+function isQueryContextLike(value: unknown): value is QueryContextLike {
+  return typeof value === 'object' && value !== null && Array.isArray((value as QueryContextLike).queryKey)
+}
+
+function shouldSuppressPlansToast(options?: FetchPlansOptions | QueryContextLike): boolean {
+  if (isQueryContextLike(options)) {
+    return options.queryKey?.includes('plans-public') === true
+  }
+  return options?.suppressToast === true
+}
+
+async function fetchPlansWithOptions(options: FetchPlansOptions = {}): Promise<PlansResponse> {
+  return request<PlansResponse>(`${BASE}/stripe/plans`, { suppressToast: options.suppressToast })
+}
+
+export async function fetchPlans(options?: FetchPlansOptions | QueryContextLike): Promise<PlansResponse> {
+  return fetchPlansWithOptions({ suppressToast: shouldSuppressPlansToast(options) })
+}
+
+export async function fetchPlansQuietly(): Promise<PlansResponse> {
+  return fetchPlansWithOptions({ suppressToast: true })
 }
 
 export async function fetchBacktestStrategies(): Promise<StrategiesResponse> {
