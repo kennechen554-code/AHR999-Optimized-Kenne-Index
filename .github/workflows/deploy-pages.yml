@@ -1,4 +1,4 @@
-name: Deploy frontend to GitHub Pages
+name: Publish frontend to GitHub Pages
 
 on:
   push:
@@ -12,15 +12,13 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
-  group: github-pages
+  group: github-pages-static
   cancel-in-progress: false
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,18 +39,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
       - name: Build frontend
         run: npm run build
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: frontend/build
-
-      - name: Commit branch-source fallback
+      - name: Commit branch-source Pages assets
         if: github.actor != 'github-actions[bot]'
         working-directory: .
         run: |
@@ -64,19 +54,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets index.html 404.html .nojekyll
           if git diff --cached --quiet; then
-            echo "No branch-source Pages fallback changes."
+            echo "No branch-source Pages asset changes."
           else
-            git commit -m "chore(pages): publish frontend static fallback"
+            git commit -m "chore(pages): publish frontend static assets"
             git push origin HEAD:main
           fi
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
