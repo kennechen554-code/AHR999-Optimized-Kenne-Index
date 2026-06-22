@@ -121,6 +121,13 @@ npm.cmd run build
 前端生产产物输出到 `frontend/build`，Docker 镜像会从该目录复制静态文件。
 当前前端构建链使用 `@vitejs/plugin-react` 6.0.x，锁文件当前解析到 Vite 8.0.16，并已通过 Windows 本地生产构建验证。
 
+#### GitHub Pages 前端发布
+仓库包含 `.github/workflows/deploy-pages.yml`。推送到 `main` 时会执行 `npm ci` 与 `npm run build`，再将 `frontend/build` 作为 GitHub Pages artifact 发布。Vite 会在目标仓库 Actions 环境中使用 `/AHR999-Optimized-Kenne-Index/` 作为资源基路径，前端在该环境下使用 `HashRouter`，避免项目页子路径刷新时出现空白页。
+
+当前 workflow 同时会把 `frontend/build` 同步到仓库根目录的 `index.html`、`404.html`、`.nojekyll` 和 `assets/**`，作为 Pages 仍配置为 branch/root 时的静态回退。若后续在 GitHub `Settings -> Pages` 中将 Source 切换为 `GitHub Actions`，可以移除这组根目录静态回退产物，只保留 artifact 发布链路。
+
+本地普通预览请直接运行 `npm.cmd run build && npm.cmd run preview -- --host 127.0.0.1 --port 4173`。如需模拟 GitHub Pages 基路径，可临时设置 `$env:GITHUB_REPOSITORY='kennechen554-code/AHR999-Optimized-Kenne-Index'` 后构建；最终仍以线上 Pages URL 的资产 200 状态作为发布验证证据。
+
 ---
 
 ## ⚙️ 环境变量配置
